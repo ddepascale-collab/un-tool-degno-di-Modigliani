@@ -966,6 +966,9 @@ svg.leaflet-image-layer.leaflet-interactive path {
   .geo-radius label{font-size:12px;color:var(--ink-dim);display:flex;justify-content:space-between;margin-bottom:6px}
   .geo-radius label b{color:var(--accent);font-family:'Space Mono';font-size:12px}
   .geo-radius input[type=range]{width:100%;accent-color:var(--accent)}
+  .geo-tipologia-label{display:block!important;margin-top:10px}
+  .geo-tipologia-label select{width:100%;margin-top:4px;padding:7px 8px;border:1px solid var(--line);
+    border-radius:8px;font-family:'Archivo';font-size:12.5px;color:var(--ink);background:#fff}
   .gn-hd{font-family:'Space Mono',monospace;font-size:9px;font-weight:700;text-transform:uppercase;
     letter-spacing:.4px;color:var(--ink-faint);margin:10px 0 6px}
   .gn-list{max-height:260px;overflow-y:auto;margin:-2px -2px 0;padding:2px}
@@ -1069,6 +1072,37 @@ svg.leaflet-image-layer.leaflet-interactive path {
   .legend .li .r{width:11px;height:11px;border-radius:50%}
   .legend .li.approx .r{background:#fff;border:2px dashed #8a97ab;width:12px;height:12px}
   .legend .li .r[style*="dff0fb"]{font-size:8px;line-height:11px;text-align:center;width:14px;height:14px}
+
+  .proposal-panel{position:absolute;right:14px;top:14px;z-index:500}
+  .proposal-btn{background:var(--da-green,#01634C);color:#fff;border:0;border-radius:11px;padding:10px 16px;
+    font-family:'Archivo',sans-serif;font-weight:700;font-size:13px;cursor:pointer;box-shadow:var(--shadow);
+    display:flex;align-items:center;gap:8px}
+  .proposal-btn:hover{filter:brightness(1.1)}
+  .proposal-btn span{background:rgba(255,255,255,.25);border-radius:20px;padding:1px 8px;font-family:'Space Mono'}
+  .pp-proposal-toggle{display:block;width:100%;margin-top:10px;border-radius:9px;padding:8px 10px;font-family:'Archivo';
+    font-size:12.5px;font-weight:700;cursor:pointer;border:1px solid rgba(1,99,76,.4);background:transparent;color:var(--da-green,#01634C)}
+  .pp-proposal-toggle.in{background:var(--da-green,#01634C);color:#fff;border-color:var(--da-green,#01634C)}
+
+  .proposal-modal-ov{display:none;position:fixed;inset:0;background:rgba(10,45,45,.5);z-index:4000;
+    align-items:center;justify-content:center}
+  .proposal-modal-ov.show{display:flex}
+  .proposal-modal{background:#fff;border-radius:16px;width:min(560px,92vw);max-height:82vh;display:flex;
+    flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .proposal-modal-h{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;
+    border-bottom:1px solid var(--line);font-family:'Archivo';font-weight:700;font-size:14.5px}
+  .proposal-modal-close{border:0;background:transparent;font-size:16px;cursor:pointer;color:var(--ink-dim)}
+  .proposal-modal-body{flex:1;overflow-y:auto;padding:14px 20px}
+  .proposal-item{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
+  .proposal-item .pi-dot{width:10px;height:10px;border-radius:50%;flex:0 0 auto}
+  .proposal-item .pi-txt{flex:1;font-size:12.5px}
+  .proposal-item .pi-txt b{display:block;font-size:13px}
+  .proposal-item .pi-rm{border:0;background:transparent;color:#c0304a;cursor:pointer;font-size:12px}
+  .proposal-empty{color:var(--ink-faint);font-size:13px;padding:20px 0;text-align:center}
+  .proposal-modal-footer{padding:14px 20px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:9px}
+  .proposal-modal-footer input{border:1px solid var(--line);border-radius:9px;padding:9px 11px;font-family:'Archivo';font-size:13px}
+  .proposal-modal-footer button{border:0;background:var(--da-green,#01634C);color:#fff;border-radius:9px;
+    padding:11px;font-family:'Archivo';font-weight:700;font-size:13.5px;cursor:pointer}
+  .proposal-modal-footer button:disabled{opacity:.5;cursor:not-allowed}
 
   .leaflet-popup-content-wrapper{background:var(--panel);color:var(--ink);border-radius:var(--radius);border:1px solid var(--line);box-shadow:var(--shadow)}
   .leaflet-popup-tip{background:var(--panel);border:1px solid var(--line)}
@@ -1261,6 +1295,20 @@ svg.leaflet-image-layer.leaflet-interactive path {
         <div class="geo-radius" id="geo-radius" style="display:none">
           <label>Raggio ricerca <b id="geo-radius-val">1 km</b></label>
           <input type="range" id="geo-radius-range" min="100" max="20000" step="100" value="1000">
+          <label class="geo-tipologia-label">Tipologia posizionamento
+            <select id="geo-tipologia-select">
+              <option value="all">Tutte le tipologie</option>
+              <option value="grandistazioni">🚆 Grandi Stazioni</option>
+              <option value="altrestazioni">🚉 Altre stazioni</option>
+              <option value="cc">🛒 Centri comm.</option>
+              <option value="aeroporti">✈️ Aeroporti</option>
+              <option value="metro">🚇 Metro</option>
+              <option value="edicole">🗞️ Edicole</option>
+              <option value="navi">🚢 Navi</option>
+              <option value="cinema">🎬 Cinema</option>
+              <option value="vending">🥤 Vending</option>
+            </select>
+          </label>
           <div class="geo-nearby" id="geo-nearby"></div>
           <button id="geo-clear">Rimuovi punto di ricerca</button>
         </div>
@@ -1308,7 +1356,25 @@ svg.leaflet-image-layer.leaflet-interactive path {
       <div class="li approx"><span class="r"></span>Posizione approssimativa</div>
       <div class="li"><span class="r" style="background:#dff0fb;border:1.5px solid #3a7bd5;position:relative">&#128674;</span>A bordo nave (in acqua)</div>
     </div>
+    <div class="proposal-panel" id="proposal-panel">
+      <button class="proposal-btn" id="proposal-btn">📋 Proposta cliente <span id="proposal-count">0</span></button>
+    </div>
   </main>
+</div>
+
+<div class="proposal-modal-ov" id="proposal-modal-ov">
+  <div class="proposal-modal" id="proposal-modal">
+    <div class="proposal-modal-h">
+      <span>📋 Proposta cliente — posizionamenti selezionati</span>
+      <button class="proposal-modal-close" id="proposal-modal-close">✕</button>
+    </div>
+    <div class="proposal-modal-body" id="proposal-modal-body"></div>
+    <div class="proposal-modal-footer">
+      <input id="proposal-client-name" placeholder="Nome cliente (es. Visit Tuscany)">
+      <input id="proposal-date" type="date">
+      <button id="proposal-generate-btn">Genera HTML proposta →</button>
+    </div>
+  </div>
 </div>
 
 <div class="ov" id="ov"><div class="card" id="card"></div></div>
@@ -1427,7 +1493,7 @@ function boatIcon(col){
 function esc(s){return String(s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));}
 function sv(lat,lng){return `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${lat},${lng}`;}
 
-function popupHtml(fid,r){
+function popupHtml(fid,r,idx){
   const f=FORN.find(x=>x.id===fid),col=COLOR[fid];
   const kc=r.digital?'var(--digital)':'var(--static)';
   const klabel=r.digital?'Digital':'Statico';
@@ -1452,6 +1518,8 @@ function popupHtml(fid,r){
     : (!r.precise?`<div class="pp-warn">&#9888; Posizione approssimativa (${r.stazione?'livello stazione/comune':'via/citt\u00e0'}). Da verificare con il fornitore.</div>`:'');
   const svBtn = r.inacqua ? '' :
     `<a class="pp-btn" href="${sv(r.lat,r.lng)}" target="_blank" rel="noopener">Apri in Street View &#8599;</a>`;
+  const selKey=fid+'::'+idx;
+  const inProposal=proposalSelection.has(selKey);
   return `<div class="pp-forn" style="color:${col}">${esc(f.nome)}</div>
     <span class="pp-type" style="background:${kc}1f;color:${kc}">${klabel}</span>
     <div class="pp-loc">${esc(r.ubicazione||'—')}</div>
@@ -1459,19 +1527,27 @@ function popupHtml(fid,r){
     <div class="pp-grid">${g}</div>
     ${formatiBlock}${catNote}${warn}
     ${svBtn}
-    <a class="pp-card" onclick="openCard('${fid}')">Scheda fornitore &#8594;</a>`;
+    <a class="pp-card" onclick="openCard('${fid}')">Scheda fornitore &#8594;</a>
+    <button class="pp-proposal-toggle ${inProposal?'in':''}" onclick="toggleProposal('${fid}',${idx})">${inProposal?'✓ Nella proposta cliente — rimuovi':'+ Aggiungi alla proposta cliente'}</button>`;
 }
 
 // build markers
 const markers={};
 FORN.forEach(f=>{
-  markers[f.id]=f.records.map(r=>{
+  markers[f.id]=f.records.map((r,idx)=>{
     const m=L.marker([r.lat,r.lng],{icon: r.inacqua? boatIcon(COLOR[f.id]) : dotIcon(COLOR[f.id],!r.precise)});
-    m._r=r;m._fid=f.id;
-    m.bindPopup(()=>popupHtml(f.id,r),{closeButton:true});
+    m._r=r;m._fid=f.id;m._idx=idx;
+    m.bindPopup(()=>popupHtml(f.id,r,idx),{closeButton:true});
     return m;
   });
 });
+
+// Un impianto (riga) può avere più schermi/facce fisiche (es. un digital wall da 103 schermi
+// registrato come 1 sola riga). Le statistiche devono contare gli schermi reali, non le righe.
+function impCount(r){
+  const n=parseInt(r.schermi,10);
+  return (Number.isFinite(n) && n>0) ? n : 1;
+}
 
 function match(r,fid){
   if(state.kind==='d'&&!r.digital)return false;
@@ -1499,15 +1575,15 @@ function render(){
     const keep=markers[f.id].filter(m=>match(m._r,f.id));
     if(keep.length){g.addLayers(keep);if(!map.hasLayer(g))map.addLayer(g);fset.add(f.id);}
     else map.removeLayer(g);
-    if(keep.length)byForn[f.nome]=keep.length;
-    keep.forEach(m=>{vis++;const r=m._r;
-      if(r.digital)digC++;else staC++;
-      byReg[r.regione||'—']=(byReg[r.regione||'—']||0)+1;
-      byMac[f.macro]=(byMac[f.macro]||0)+1;});
+    if(keep.length)byForn[f.nome]=keep.reduce((s,m)=>s+impCount(m._r),0);
+    keep.forEach(m=>{const r=m._r;const n=impCount(r);vis+=n;
+      if(r.digital)digC+=n;else staC+=n;
+      byReg[r.regione||'—']=(byReg[r.regione||'—']||0)+n;
+      byMac[f.macro]=(byMac[f.macro]||0)+n;});
   });
   document.getElementById('s-vis').textContent=vis.toLocaleString('it-IT');
   document.getElementById('s-forn').textContent=fset.size;
-  FORN.forEach(f=>{const n=markers[f.id].filter(m=>match(m._r,f.id)).length;
+  FORN.forEach(f=>{const n=markers[f.id].filter(m=>match(m._r,f.id)).reduce((s,m)=>s+impCount(m._r),0);
     const e=document.querySelector(`[data-ct="${f.id}"]`);if(e)e.textContent=n.toLocaleString('it-IT');});
   updateRiepilogo(vis,fset.size,digC,staC,byReg,byMac,byForn);
 }
@@ -1535,11 +1611,11 @@ function updateRiepilogo(vis,nf,digC,staC,byReg,byMac,byForn){
 const regs=[...new Set(FORN.flatMap(f=>f.records.map(r=>r.regione)).filter(Boolean))].sort();
 const rsel=document.getElementById('f-regione');
 regs.forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;rsel.appendChild(o);});
-rsel.onchange=e=>{state.region=e.target.value;render();};
+rsel.onchange=e=>{state.region=e.target.value;render();if(geoPoint)drawRadius();};
 
 document.querySelectorAll('#kindSeg button').forEach(b=>b.onclick=()=>{
   document.querySelectorAll('#kindSeg button').forEach(x=>x.classList.remove('on'));
-  b.classList.add('on');state.kind=b.dataset.k;render();});
+  b.classList.add('on');state.kind=b.dataset.k;render();if(geoPoint)drawRadius();});
 
 // Build thematic group buttons dynamically (incl. empty groups like metro, shown disabled)
 const groupSeg=document.getElementById('groupSeg');
@@ -1578,6 +1654,14 @@ document.querySelectorAll('#groupSeg button').forEach(b=>b.onclick=()=>{
     },100);
   }
   render();
+  if(geoPoint) drawRadius(); // tieni consistente il pannello "Fornitori nel raggio" con la mappa
+  const geoSel=document.getElementById('geo-tipologia-select');
+  if(geoSel) geoSel.value=g;
+});
+
+document.getElementById('geo-tipologia-select').addEventListener('change',function(){
+  const btn=document.querySelector('#groupSeg button[data-g="'+this.value+'"]');
+  if(btn) btn.click(); // riusa la stessa logica (filtro, isolamento, render, drawRadius) dei pulsanti sidebar
 });
 
 let sto;
@@ -1588,7 +1672,9 @@ function renderSuggestions(q){
   const matches=FORN.filter(f=>f.nome.toLowerCase().includes(q))
     .sort((a,b)=>{
       const ai=a.nome.toLowerCase().indexOf(q),bi=b.nome.toLowerCase().indexOf(q);
-      if(ai!==bi)return ai-bi; return b.records.length-a.records.length;
+      if(ai!==bi)return ai-bi;
+      const na=a.records.reduce((s,r)=>s+impCount(r),0),nb=b.records.reduce((s,r)=>s+impCount(r),0);
+      return nb-na;
     }).slice(0,8);
   if(!matches.length){suggBox.innerHTML='';return;}
   suggBox.innerHTML=`<div class="sg-hd">Fornitori (${matches.length}) — clicca per aprire la scheda</div>`+
@@ -1596,10 +1682,11 @@ function renderSuggestions(q){
       const col=COLOR[f.id];const regs=new Set(f.records.map(r=>r.regione||'—')).size;
       const kind=f.digital===true?'D':f.digital===false?'S':'D+S';
       const nm=esc(f.nome).replace(new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig'),'<b>$1</b>');
+      const n=f.records.reduce((s,r)=>s+impCount(r),0);
       return `<div class="sg-row" data-fid="${f.id}">
         <span class="sg-dot" style="background:${col}"></span>
         <span class="sg-nm">${nm}</span>
-        <span class="sg-meta">${f.records.length.toLocaleString('it-IT')} · ${regs} reg. · ${kind}</span>
+        <span class="sg-meta">${n.toLocaleString('it-IT')} · ${regs} reg. · ${kind}</span>
       </div>`;
     }).join('');
   suggBox.querySelectorAll('.sg-row').forEach(row=>{
@@ -1614,7 +1701,7 @@ document.getElementById('search').oninput=e=>{
   const v=e.target.value.trim().toLowerCase();
   renderSuggestions(v);
   clearTimeout(sto);
-  sto=setTimeout(()=>{state.search=v;render();},220);
+  sto=setTimeout(()=>{state.search=v;render();if(geoPoint)drawRadius();},220);
 };
 
 // ============ GEOCODER: cerca indirizzo e vai sulla mappa ============
@@ -1697,7 +1784,8 @@ function selectGeo(d){
       else if(span>0.8) mz=9;
       else if(span>0.3) mz=11;
       else if(span>0.08)mz=13;
-      else              mz=16;
+      else if(span>0.02)mz=15;
+      else              mz=17; // indirizzo/edificio puntuale: zoom stretto senza intervento manuale
       try{ map.flyToBounds(bounds,{padding:[50,50],maxZoom:mz,duration:.6}); framed=true; }
       catch(e){ try{ map.fitBounds(bounds,{padding:[50,50],maxZoom:mz}); framed=true; }catch(e2){} }
     }
@@ -1706,7 +1794,8 @@ function selectGeo(d){
     // nessun bounding box valido: stima lo zoom dal tipo di luogo
     const t=(d.addresstype||d.type||'').toLowerCase();
     const z = (t==='state'||t==='region')?8 : (t==='county'||t==='province'||t==='state_district')?9 :
-              (t==='city'||t==='town'||t==='municipality')?12 : (t==='village'||t==='suburb')?13 : 15;
+              (t==='city'||t==='town'||t==='municipality')?12 : (t==='village'||t==='suburb')?13 :
+              (t==='house'||t==='building'||t==='amenity'||t==='shop'||t==='office'||t==='road')?17 : 16;
     map.flyTo(geoPoint,z,{duration:.6});
   }
 }
@@ -1729,7 +1818,7 @@ function drawRadius(){
       // per il conteggio rispettiamo i filtri (tipo/regione/gruppo/testo) ma NON l'isolamento
       if(!matchNoActive(m._r,f.id))return;
       const dist=haversine(geoPoint[0],geoPoint[1],m._r.lat,m._r.lng);
-      if(dist<=r){c++;cd+=m._r.digital?1:0;cs+=m._r.digital?0:1;}
+      if(dist<=r){const imp=impCount(m._r);c+=imp;cd+=m._r.digital?imp:0;cs+=m._r.digital?0:imp;}
     });
     if(c>0){perForn[f.id]={nome:f.nome,n:c};n+=c;dig+=cd;sta+=cs;}
   });
@@ -1811,7 +1900,7 @@ const MACRO_ICON={'Digital & DOOH':'\u{1F4FA}','Affissione & Arredo urbano':'\u{
 const byMacro={};FORN.forEach(f=>{(byMacro[f.macro]=byMacro[f.macro]||[]).push(f);});
 const macroState={}; // aperto/chiuso
 function makeSupplierEl(f){
-  const col=COLOR[f.id];const n=f.records.length;
+  const col=COLOR[f.id];const n=f.records.reduce((s,r)=>s+impCount(r),0);
   const kind=f.digital===true?'D':f.digital===false?'S':'D+S';
   const kc=f.digital===false?'var(--static)':f.digital===true?'var(--digital)':'#7f8c8d';
   const el=document.createElement('div');el.className='supplier on';el.style.setProperty('--c',col);
@@ -1830,7 +1919,7 @@ function makeSupplierEl(f){
 MACRO_ORDER.forEach(mc=>{
   const forns=byMacro[mc]; if(!forns||!forns.length) return;
   macroState[mc]=true;
-  const tot=forns.reduce((s,f)=>s+f.records.length,0);
+  const tot=forns.reduce((s,f)=>s+f.records.reduce((s2,r)=>s2+impCount(r),0),0);
   const hd=document.createElement('div');hd.className='macro-hd';
   hd.innerHTML=`<span class="mc-caret">\u25BE</span><span class="mc-ic">${MACRO_ICON[mc]||''}</span>
     <span class="mc-name">${esc(mc)}</span>
@@ -1877,10 +1966,10 @@ document.getElementById('onlyS').onclick=()=>setKind(false);
 // supplier card
 function openCard(fid){
   const f=FORN.find(x=>x.id===fid),col=COLOR[fid];
-  const recs=f.records;const tot=recs.length;
-  const dig=recs.filter(r=>r.digital).length,sta=tot-dig;
+  const recs=f.records;const tot=recs.reduce((s,r)=>s+impCount(r),0);
+  const dig=recs.filter(r=>r.digital).reduce((s,r)=>s+impCount(r),0),sta=tot-dig;
   const approx=recs.filter(r=>!r.precise).length;
-  const byR={};recs.forEach(r=>{const k=r.regione||'—';byR[k]=(byR[k]||0)+1;});
+  const byR={};recs.forEach(r=>{const k=r.regione||'—';byR[k]=(byR[k]||0)+impCount(r);});
   const sorted=Object.entries(byR).sort((a,b)=>b[1]-a[1]);
   const maxR=sorted.length?sorted[0][1]:1;
   const ini=f.nome.replace(/[^A-Za-z0-9 ]/g,'').split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase()||f.nome.slice(0,2).toUpperCase();
@@ -1982,7 +2071,7 @@ document.getElementById('mtoggle').onclick=()=>document.getElementById('aside').
   const landing=document.getElementById('landing');
   const agent=document.getElementById('agent-view');
   const statEl=document.getElementById('lp-stat');
-  try{ const tot=FORN.reduce((s,f)=>s+f.records.length,0);
+  try{ const tot=FORN.reduce((s,f)=>s+f.records.reduce((s2,r)=>s2+impCount(r),0),0);
     statEl.textContent=FORN.length+' fornitori · '+tot.toLocaleString('it-IT')+' posizionamenti'; }catch(e){}
 
   function showHome(){ agent.classList.remove('show'); landing.style.display='flex'; }
@@ -2046,6 +2135,31 @@ document.getElementById('mtoggle').onclick=()=>document.getElementById('aside').
     return null;
   }
 
+  // --- Agente reale (n8n) ---
+  // Se il webhook non risponde (rete assente, workflow non pubblicato, CORS, ecc.)
+  // si ricade sul matching locale delle FAQ come rete di sicurezza.
+  const N8N_WEBHOOK_URL='https://davidedepascale1.app.n8n.cloud/webhook/3cb43b29-ee1d-4d9a-9a47-0668120b63c7/chat';
+  function getSessionId(){
+    let sid; try{ sid=localStorage.getItem('sarahbase_agent_session'); }catch(e){}
+    if(!sid){ sid='web-'+Date.now()+'-'+Math.random().toString(36).slice(2); try{ localStorage.setItem('sarahbase_agent_session',sid); }catch(e){} }
+    return sid;
+  }
+  function mdToHtml(s){
+    let h=esc(s);
+    h=h.replace(/\*\*(.+?)\*\*/g,'<b>$1</b>');
+    h=h.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener">$1</a>');
+    h=h.split('\n').map(line=>{const m=line.match(/^[*-]\s+(.*)$/);return m?'• '+m[1]:line;}).join('\n');
+    return h.replace(/\n/g,'<br>');
+  }
+  function addTyping(){
+    const wrap=document.createElement('div');wrap.className='av-msg av-bot av-typing';
+    wrap.innerHTML=`<div class="av-av">👱‍♀️</div><div class="av-bubble">Sto pensando…</div>`;
+    const chips=chat.querySelector('.av-chips');
+    if(chips)chat.insertBefore(wrap,chips);else chat.appendChild(wrap);
+    chat.scrollTop=chat.scrollHeight;
+    return wrap;
+  }
+
   function addMsg(text,who){
     const wrap=document.createElement('div');wrap.className='av-msg '+(who==='user'?'av-user':'av-bot');
     wrap.innerHTML=`<div class="av-av">${who==='user'?'tu':'👱‍♀️'}</div><div class="av-bubble">${text}</div>`;
@@ -2053,20 +2167,35 @@ document.getElementById('mtoggle').onclick=()=>document.getElementById('aside').
     if(chips)chat.insertBefore(wrap,chips);else chat.appendChild(wrap);
     chat.scrollTop=chat.scrollHeight;
   }
-  function botReply(q){
-    const hit=findFaqMatch(q);
-    setTimeout(()=>{
+  async function botReply(q){
+    const typingEl=addTyping();
+    try{
+      const res=await fetch(N8N_WEBHOOK_URL,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({action:'sendMessage',chatInput:q,sessionId:getSessionId()})
+      });
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const data=await res.json();
+      const reply=(data && (data.output||data.text||data.reply)) || (typeof data==='string'?data:null);
+      typingEl.remove();
+      if(reply){ addMsg(mdToHtml(reply),'bot'); return; }
+      throw new Error('Risposta vuota dall\'agente');
+    }catch(err){
+      typingEl.remove();
+      const hit=findFaqMatch(q);
       if(hit){
-        addMsg("📖 <b>"+hit.q.replace(/</g,'&lt;')+"</b><br><br>"+hit.a.replace(/</g,'&lt;')+"<br><br><span style=\"opacity:.6;font-size:12px\">Risposta dalle FAQ di Sarahbase — se non è ciò che cercavi, passa alla scheda 📖 FAQ per cercare o per segnalare la tua domanda.</span>",'bot');
+        addMsg("⚠️ Non riesco a raggiungere l'agente online in questo momento, ma ho trovato questo nelle FAQ locali:<br><br>📖 <b>"+esc(hit.q)+"</b><br><br>"+esc(hit.a),'bot');
       } else {
-        addMsg("Grazie! Questa è un'anteprima dell'esperienza chat. Quando l'agente sarà collegato ai dati di Sarahbase potrò rispondere a <b>«"+q.replace(/</g,'&lt;')+"»</b> con benchmark, best practice e preview reali dei posizionamenti. Nel frattempo puoi consultare la scheda 📖 FAQ qui sopra, oppure passare alla mappa dal pulsante in alto a destra.",'bot');
+        addMsg("⚠️ Non riesco a raggiungere l'agente online in questo momento. Riprova tra poco, oppure consulta la scheda 📖 FAQ qui sopra.",'bot');
       }
-    },500);
+    }
   }
   function send(){ const v=input.value.trim(); if(!v)return; addMsg(v.replace(/</g,'&lt;'),'user'); input.value=''; botReply(v); }
   document.getElementById('av-send').onclick=send;
   input.addEventListener('keydown',e=>{if(e.key==='Enter')send();});
   document.querySelectorAll('.av-chip').forEach(c=>c.onclick=()=>{addMsg(c.textContent,'user');botReply(c.textContent);});
+
 
   // --- Tab Chat / FAQ ---
   const tabChat=document.getElementById('av-tab-chat'), tabFaq=document.getElementById('av-tab-faq');
