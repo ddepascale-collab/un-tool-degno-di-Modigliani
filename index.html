@@ -1758,12 +1758,13 @@ function generateProposalFile(clientName, dateVal, rows, fornCount){
   // Solo specifiche tecniche per ogni posizionamento — NESSUN riferimento al fornitore
   const positions=rows.map(r=>({ la:r.lat, ln:r.lng, d:!!r.digital, ex:r.extra||{} }));
 
-  const html=buildProposalHTMLDocument({clientName, dateFmt, totalPos, totalForn:fornCount, positions, leafletJS, clusterJS});
+  const html=buildProposalHTMLDocument({clientName, dateFmt, totalPos, totalForn:null, positions, leafletJS, clusterJS});
   const blob=new Blob([html],{type:'text/html'});
   const url=URL.createObjectURL(blob);
   const a=document.createElement('a'); a.href=url;
   const slug=clientName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')||'cliente';
-  a.download=`Proposta_${slug}_DOOH_OOH.html`;
+  // GitHub Pages ready: carica questo file come index.html nella cartella della proposta
+  a.download='index.html';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(()=>URL.revokeObjectURL(url),2000);
 }
@@ -1843,6 +1844,10 @@ main{flex:1;position:relative;min-width:0}
 .legend{position:absolute;left:14px;bottom:20px;z-index:500;background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:10px;padding:10px 13px;font-size:12px;box-shadow:var(--shadow)}
 .legend .li{display:flex;align-items:center;gap:8px;margin:4px 0}
 .legend .r{width:11px;height:11px;border-radius:50%}
+.pv-recenter-btn{position:absolute;right:14px;top:14px;z-index:500;background:#fff;border:1px solid var(--line);
+  border-radius:9px;padding:8px 13px;font-family:'Archivo';font-size:12.5px;font-weight:700;color:var(--da-dark);
+  cursor:pointer;box-shadow:var(--shadow)}
+.pv-recenter-btn:hover{border-color:var(--da-green);color:var(--da-green)}
 .leaflet-popup-content-wrapper{border-radius:10px}
 .leaflet-popup-content{font-family:'Archivo',sans-serif;min-width:210px}
 .pp-type{display:inline-block;font-family:'Space Mono';font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:3px 8px;border-radius:5px;margin-bottom:8px;font-weight:700}
@@ -1939,9 +1944,13 @@ function applyFilter(){
 }
 
 function initMap(){
-  map=L.map('map',{preferCanvas:true}).setView([42.5,12.5],6);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    {attribution:'&copy; OpenStreetMap contributors',subdomains:'abc',maxZoom:19}).addTo(map);
+  map=L.map('map',{preferCanvas:true,maxZoom:14}).setView([42.5,12.5],6);
+  // GitHub Pages: mappa OpenStreetMap via HTTPS, come nella mappa principale.
+  // Attribuzione OSM mantenuta come richiesto dalla licenza delle tile.
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    maxZoom:19,
+    attribution:'&copy; OpenStreetMap contributors'
+  }).addTo(map);
   cluster=L.markerClusterGroup({maxClusterRadius:50});
   map.addLayer(cluster);
   const bounds=[];
@@ -1958,20 +1967,25 @@ function initMap(){
   applyFilter();
 
   // Il contenitore #map parte da display:none: le sue dimensioni reali sono note al browser solo
-  // dopo il layout. Invece di indovinare un tempo di attesa, osserviamo il contenitore e ricalcoliamo
-  // dimensioni + inquadratura ogni volta che la sua dimensione cambia davvero (robusto su ogni dispositivo/browser).
+  // dopo il layout. Oltre al ResizeObserver, aggiungiamo alcuni tentativi extra ravvicinati come
+  // rete di sicurezza, e un pulsante per ricentrare manualmente se qualcosa va storto comunque.
   function settle(){
     map.invalidateSize();
     if(bounds.length){ try{ map.fitBounds(bounds,{padding:[40,40],maxZoom:14}); }catch(e){} }
   }
   settle();
+  setTimeout(settle,150);
+  setTimeout(settle,600);
+  setTimeout(settle,1200);
   if(window.ResizeObserver){
     const ro=new ResizeObserver(()=>settle());
     ro.observe(document.getElementById('map'));
-  } else {
-    setTimeout(settle,150);
-    setTimeout(settle,500);
   }
+  const recenterBtn=document.createElement('button');
+  recenterBtn.textContent='⤢ Centra sui posizionamenti';
+  recenterBtn.className='pv-recenter-btn';
+  recenterBtn.onclick=settle;
+  document.querySelector('main').appendChild(recenterBtn);
 
   document.querySelectorAll('#kindSeg button').forEach(b=>b.onclick=()=>{
     document.querySelectorAll('#kindSeg button').forEach(x=>x.classList.remove('on'));
