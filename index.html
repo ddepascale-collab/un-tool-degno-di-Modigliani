@@ -1110,6 +1110,16 @@ svg.leaflet-image-layer.leaflet-interactive path {
     font-family:'Archivo';font-size:14.5px;font-weight:700;cursor:pointer;margin-top:22px}
   .pv-generate:disabled{opacity:.4;cursor:not-allowed}
   .pv-generate:hover:not(:disabled){filter:brightness(1.1)}
+  .pv-publish-box{margin-top:22px;padding:16px;border:1px solid rgba(10,45,45,.14);border-radius:12px;background:#fff}
+  .pv-publish-title{font-size:13px;font-weight:800;color:var(--da-dark);margin-bottom:5px}
+  .pv-publish-note{font-size:11.5px;line-height:1.45;color:rgba(10,45,45,.55);margin-bottom:10px}
+  .pv-token{width:100%;border:1px solid rgba(10,45,45,.18);border-radius:9px;padding:10px 12px;font-family:'Space Mono';font-size:11.5px;color:var(--da-dark)}
+  .pv-publish{width:100%;border:0;background:var(--da-violet);color:var(--da-dark);border-radius:11px;padding:13px;font-family:'Archivo';font-size:14px;font-weight:800;cursor:pointer;margin-top:10px}
+  .pv-publish:disabled{opacity:.45;cursor:not-allowed}
+  .pv-publish:hover:not(:disabled){filter:brightness(1.04)}
+  .pv-public-result{display:none;margin-top:12px;padding:11px 12px;border-radius:9px;background:rgba(1,99,76,.07);border:1px solid rgba(1,99,76,.18);font-size:12px;line-height:1.5}
+  .pv-public-result.show{display:block}
+  .pv-public-result a{color:var(--da-green);font-weight:800;word-break:break-all}
   .pv-cols{font-size:11.5px;color:rgba(10,45,45,.5);margin-top:20px;line-height:1.6;background:rgba(10,45,45,.04);border-radius:10px;padding:12px 14px}
   .pv-cols b{color:var(--da-dark)}
 
@@ -1407,7 +1417,15 @@ svg.leaflet-image-layer.leaflet-interactive path {
         <button type="button" class="pv-template" id="pv-download-template">Scarica template Excel di esempio</button>
       </div>
 
-      <button class="pv-generate" id="pv-generate-btn" disabled>Genera e scarica la mappa cliente →</button>
+      <button class="pv-generate" id="pv-generate-btn" disabled>Scarica index.html</button>
+
+      <div class="pv-publish-box">
+        <div class="pv-publish-title">Pubblica proposta su GitHub <span style="font-weight:500;opacity:.55">(test)</span></div>
+        <div class="pv-publish-note">Inserisci un fine-grained token GitHub con accesso in scrittura al solo repository <b>un-tool-degno-di-Modigliani</b>. Il token viene usato solo per questa pubblicazione e non viene salvato da Sarahbase.</div>
+        <input class="pv-token" id="pv-github-token" type="password" autocomplete="off" placeholder="github_pat_...">
+        <button class="pv-publish" id="pv-publish-btn" disabled>Pubblica e genera link pubblico</button>
+        <div class="pv-public-result" id="pv-public-result"></div>
+      </div>
 
       <div class="pv-cols">
         <b>Colonne nel file Excel</b> (nomi nella prima riga):<br>
@@ -1691,7 +1709,7 @@ async function handleExcelFile(file){
   if(typeof XLSX==='undefined'){ setUploadStatus('Impossibile caricare il modulo Excel: verifica la connessione a internet e ricarica la pagina.','err'); return; }
   const reader=new FileReader();
   reader.onload=async (e)=>{
-    document.getElementById('pv-generate-btn').disabled=true;
+    document.getElementById('pv-generate-btn').disabled=true; document.getElementById('pv-publish-btn').disabled=true;
     parsedPositions=null; parsedFornCount=null;
     try{
       const wb=XLSX.read(e.target.result,{type:'array'});
@@ -1702,11 +1720,11 @@ async function handleExcelFile(file){
       let msg=`✓ ${positions.length} posizionamenti pronti.`;
       if(failed && failed.length) msg+=` ⚠ ${failed.length} indirizzi non trovati (ignorati).`;
       setUploadStatus(msg, (failed&&failed.length)?'err':'ok');
-      document.getElementById('pv-generate-btn').disabled=false;
+      document.getElementById('pv-generate-btn').disabled=false; document.getElementById('pv-publish-btn').disabled=false;
     }catch(err){
       parsedPositions=null; parsedFornCount=null;
       setUploadStatus('⚠ '+err.message,'err');
-      document.getElementById('pv-generate-btn').disabled=true;
+      document.getElementById('pv-generate-btn').disabled=true; document.getElementById('pv-publish-btn').disabled=true;
     }
   };
   reader.onerror=()=>setUploadStatus('⚠ Impossibile leggere il file.','err');
@@ -1745,23 +1763,111 @@ document.getElementById('pv-generate-btn').onclick=()=>{
   generateProposalFile(clientName, dateVal, parsedPositions, parsedFornCount);
 };
 
-function generateProposalFile(clientName, dateVal, rows, fornCount){
+function makeProposalPayload(clientName, dateVal, rows, fornCount){
   const totalPos=rows.length;
   const dateObj=new Date(dateVal+'T00:00:00');
   const dateFmt=dateObj.toLocaleDateString('it-IT',{day:'numeric',month:'long',year:'numeric'});
-
-  // Solo specifiche tecniche per ogni posizionamento — NESSUN riferimento al fornitore
   const positions=rows.map(r=>({ la:r.lat, ln:r.lng, d:!!r.digital, ex:r.extra||{} }));
+  return {
+    html:buildProposalHTMLDocument({clientName, dateFmt, totalPos, totalForn:fornCount, positions}),
+    totalPos,dateFmt
+  };
+}
 
-  const html=buildProposalHTMLDocument({clientName, dateFmt, totalPos, totalForn:fornCount, positions});
+function generateProposalFile(clientName, dateVal, rows, fornCount){
+  const {html}=makeProposalPayload(clientName,dateVal,rows,fornCount);
   const blob=new Blob([html],{type:'text/html'});
   const url=URL.createObjectURL(blob);
-  const a=document.createElement('a'); a.href=url;
-  const slug=clientName.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')||'cliente';
-  a.download='index.html';
+  const a=document.createElement('a'); a.href=url; a.download='index.html';
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(()=>URL.revokeObjectURL(url),2000);
 }
+
+
+const GH_TEST_CONFIG={
+  owner:'ddepascale-collab',
+  repo:'un-tool-degno-di-Modigliani',
+  branch:'main',
+  pagesBase:'https://ddepascale-collab.github.io/un-tool-degno-di-Modigliani'
+};
+
+function makeProposalSlug(clientName,dateVal){
+  const base=String(clientName||'cliente').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,40)||'cliente';
+  const arr=new Uint8Array(4);
+  crypto.getRandomValues(arr);
+  const rnd=Array.from(arr).map(x=>x.toString(16).padStart(2,'0')).join('');
+  return `${base}-${dateVal}-${rnd}`;
+}
+
+function utf8ToBase64(str){
+  const bytes=new TextEncoder().encode(str);
+  let binary='';
+  for(let i=0;i<bytes.length;i+=32768){
+    binary+=String.fromCharCode(...bytes.subarray(i,i+32768));
+  }
+  return btoa(binary);
+}
+
+async function publishProposalToGitHub(clientName,dateVal,rows,fornCount,token){
+  const slug=makeProposalSlug(clientName,dateVal);
+  const path=`proposals/${slug}/index.html`;
+  const api=`https://api.github.com/repos/${GH_TEST_CONFIG.owner}/${GH_TEST_CONFIG.repo}/contents/${path}`;
+  const {html}=makeProposalPayload(clientName,dateVal,rows,fornCount);
+
+  const res=await fetch(api,{
+    method:'PUT',
+    headers:{
+      'Accept':'application/vnd.github+json',
+      'Authorization':`Bearer ${token}`,
+      'X-GitHub-Api-Version':'2022-11-28',
+      'Content-Type':'application/json'
+    },
+    body:JSON.stringify({
+      message:`Publish proposal ${clientName} - ${dateVal}`,
+      content:utf8ToBase64(html),
+      branch:GH_TEST_CONFIG.branch
+    })
+  });
+
+  let data={};
+  try{data=await res.json();}catch(e){}
+  if(!res.ok) throw new Error(data.message||`GitHub API error ${res.status}`);
+
+  return {
+    publicUrl:`${GH_TEST_CONFIG.pagesBase}/proposals/${slug}/`,
+    commitUrl:data?.commit?.html_url||null
+  };
+}
+
+document.getElementById('pv-publish-btn').onclick=async()=>{
+  const clientName=document.getElementById('pv-client-name').value.trim();
+  const dateVal=document.getElementById('pv-date').value;
+  const token=document.getElementById('pv-github-token').value.trim();
+  const btn=document.getElementById('pv-publish-btn');
+  const out=document.getElementById('pv-public-result');
+
+  if(!clientName){alert('Inserisci il nome del cliente.');return;}
+  if(!dateVal){alert('Inserisci la data.');return;}
+  if(!parsedPositions||!parsedPositions.length){alert('Carica prima un file Excel valido.');return;}
+  if(!token){alert('Inserisci il fine-grained token GitHub per il test.');return;}
+
+  btn.disabled=true;
+  btn.textContent='Pubblicazione in corso…';
+  out.className='pv-public-result show';
+  out.textContent='Sto creando la proposta nel repository GitHub…';
+
+  try{
+    const result=await publishProposalToGitHub(clientName,dateVal,parsedPositions,parsedFornCount,token);
+    out.innerHTML=`<b>✓ Proposta pubblicata.</b><br>GitHub Pages può impiegare qualche secondo per il deploy.<br><a href="${result.publicUrl}" target="_blank" rel="noopener">${result.publicUrl}</a>`;
+    btn.textContent='Pubblica un nuovo link';
+  }catch(err){
+    out.innerHTML=`<b>⚠ Pubblicazione non riuscita.</b><br>${String(err.message||err)}`;
+    btn.textContent='Riprova pubblicazione';
+  }finally{
+    btn.disabled=false;
+  }
+};
 
 function buildProposalHTMLDocument(o){
   const escP=s=>String(s==null?'':s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
