@@ -1411,9 +1411,12 @@ svg.leaflet-image-layer.leaflet-interactive path {
 
       <div class="pv-cols">
         <b>Colonne nel file Excel</b> (nomi nella prima riga):<br>
-        <b>Latitudine</b>, <b>Longitudine</b> — obbligatorie, coordinate del posizionamento<br>
-        <b>Tipo</b> — <i>Digital</i> o <i>Statico</i> (determina il colore del pin e il filtro)<br>
-        Qualsiasi altra colonna (es. <b>Circuito</b>, <b>Formato</b>, <b>Superficie</b>, <b>Note</b>...) viene mostrata integralmente nella scheda di ogni pin, con la stessa etichetta usata nel file.<br>
+        Per ogni riga serve <b>una delle due</b>:<br>
+        &nbsp;&nbsp;• <b>Latitudine</b> + <b>Longitudine</b> (più veloce, nessuna ricerca necessaria), oppure<br>
+        &nbsp;&nbsp;• <b>Indirizzo</b> e/o <b>Città</b> (verranno geolocalizzati automaticamente — può richiedere qualche secondo per riga)<br>
+        Se in una riga sono presenti entrambe, hanno sempre priorità le coordinate.<br>
+        <b>Tipo</b> — <i>Digital</i> o <i>Statico</i> (determina il colore del pin e il filtro).<br>
+        Qualsiasi altra colonna (es. <b>Circuito</b>, <b>Formato</b>, <b>Note</b>...) viene mostrata integralmente nella scheda di ogni pin, con la stessa etichetta usata nel file.<br>
         La colonna <b>Fornitore</b>, se presente, viene usata solo per contare i fornitori coinvolti in home: non viene mai letta né mostrata sulla mappa o nei pin.
       </div>
     </div>
@@ -1501,10 +1504,8 @@ FORN.forEach((f,i)=>COLOR[f.id]=PAL[i%PAL.length]);
 const state={kind:'all',region:'',search:'',group:'all',active:new Set(FORN.map(f=>f.id))};
 
 const map=L.map('map',{zoomControl:true,preferCanvas:true}).setView([42.5,12.5],6);
-L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
-  {attribution:'&copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors',maxZoom:19,maxNativeZoom:16}).addTo(map);
-L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
-  {maxZoom:19,maxNativeZoom:16,pane:'overlayPane'}).addTo(map);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  {attribution:'&copy; OpenStreetMap contributors',subdomains:'abc',maxZoom:19}).addTo(map);
 
 // one cluster group per supplier
 const groups={};
@@ -1605,7 +1606,19 @@ function findCol(headers, ...candidates){
   return -1;
 }
 
-function parseExcelWorkbook(wb){
+async function geocodeAddress(query){
+  try{
+    const url='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=it&q='+encodeURIComponent(query);
+    const res=await fetch(url,{headers:{'Accept-Language':'it'}});
+    const data=await res.json();
+    if(data && data.length) return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+  }catch(e){}
+  return null;
+}
+
+// Parsing "ibrido": per ogni riga usa Latitudine/Longitudine se presenti e valide;
+// altrimenti prova a geolocalizzare Indirizzo + Città (rispettando il limite di Nominatim di 1 richiesta/sec).
+async function parseExcelWorkbookHybrid(wb, onProgress){
   const sheet=wb.Sheets[wb.SheetNames[0]];
   const rows=XLSX.utils.sheet_to_json(sheet,{header:1,defval:''});
   if(!rows.length) throw new Error('Il file è vuoto.');
@@ -1614,16 +1627,43 @@ function parseExcelWorkbook(wb){
   const cLat=findCol(headers,'Latitudine','Lat');
   const cLng=findCol(headers,'Longitudine','Lng','Lon');
   const cFornitore=findCol(headers,'Fornitore'); // solo per il conteggio aggregato, mai letto/mostrato altrove
-  if(cLat===-1 || cLng===-1) throw new Error('Colonne "Latitudine" e "Longitudine" non trovate.');
+  const cCitta=findCol(headers,'Città','Citta','Comune');
+  const cIndirizzo=findCol(headers,'Indirizzo','Via','Ubicazione');
 
-  const out=[]; const fornSet=new Set();
+  const dataRows=[];
   for(let i=1;i<rows.length;i++){
-    const row=rows[i]; if(!row || !row.length) continue;
-    const lat=parseFloat(row[cLat]), lng=parseFloat(row[cLng]);
-    if(!Number.isFinite(lat) || !Number.isFinite(lng)) continue;
+    const row=rows[i];
+    if(row && row.some(v=>v!=null && String(v).trim()!=='')) dataRows.push(row);
+  }
+  if(!dataRows.length) throw new Error('Nessuna riga con dati trovata.');
+  if(cLat===-1 && cLng===-1 && cCitta===-1 && cIndirizzo===-1){
+    throw new Error('Nessuna colonna utile trovata: servono "Latitudine"+"Longitudine" oppure "Indirizzo"/"Città".');
+  }
+
+  const out=[]; const fornSet=new Set(); const failed=[];
+  for(let i=0;i<dataRows.length;i++){
+    const row=dataRows[i];
+    let lat=cLat>-1 ? parseFloat(row[cLat]) : NaN;
+    let lng=cLng>-1 ? parseFloat(row[cLng]) : NaN;
+    const hasCoords=Number.isFinite(lat) && Number.isFinite(lng);
+    let query=null;
+    if(!hasCoords){
+      const citta=cCitta>-1 ? String(row[cCitta]||'').trim() : '';
+      const indirizzo=cIndirizzo>-1 ? String(row[cIndirizzo]||'').trim() : '';
+      query=[indirizzo,citta,'Italia'].filter(Boolean).join(', ');
+      if(query==='Italia') query=null;
+    }
+    if(onProgress) onProgress(i+1, dataRows.length, query);
+    if(!hasCoords){
+      if(!query){ continue; } // riga senza coordinate né indirizzo utilizzabile: saltata
+      const geo=await geocodeAddress(query);
+      if(i<dataRows.length-1) await new Promise(r=>setTimeout(r,1100)); // rispetta il rate-limit di Nominatim
+      if(!geo){ failed.push(query); continue; }
+      lat=geo.lat; lng=geo.lng;
+    }
     const tipoRaw=cTipo>-1 ? String(row[cTipo]||'').trim().toLowerCase() : '';
     const digital=/digit|dooh|video|dinamic/.test(tipoRaw);
-    // Tutte le colonne diverse da Lat/Lng/Fornitore finiscono qui e vengono mostrate per intero
+    // Tutte le colonne diverse da Lat/Lng/Fornitore/Tipo finiscono qui e vengono mostrate per intero
     // nella scheda del pin, con l'etichetta esatta usata dal media planner nel file Excel.
     const extra={};
     headers.forEach((h,ci)=>{
@@ -1635,8 +1675,10 @@ function parseExcelWorkbook(wb){
     out.push({ digital, lat, lng, extra });
     if(cFornitore>-1 && row[cFornitore]) fornSet.add(String(row[cFornitore]).trim().toLowerCase());
   }
-  if(!out.length) throw new Error('Nessuna riga valida trovata (verifica Latitudine/Longitudine).');
-  return { positions: out, fornCount: cFornitore>-1 ? fornSet.size : null };
+  if(!out.length){
+    throw new Error('Nessuna riga geolocalizzabile'+(failed.length?` (${failed.length} indirizzi non trovati: ${failed.slice(0,3).join(' · ')}${failed.length>3?'…':''})`:'.'));
+  }
+  return { positions: out, fornCount: cFornitore>-1 ? fornSet.size : null, failed };
 }
 
 function setUploadStatus(msg, kind){
@@ -1644,16 +1686,22 @@ function setUploadStatus(msg, kind){
   el.textContent=msg; el.className='pv-status'+(kind?' '+kind:'');
 }
 
-function handleExcelFile(file){
+async function handleExcelFile(file){
   if(!file) return;
   if(typeof XLSX==='undefined'){ setUploadStatus('Impossibile caricare il modulo Excel: verifica la connessione a internet e ricarica la pagina.','err'); return; }
   const reader=new FileReader();
-  reader.onload=(e)=>{
+  reader.onload=async (e)=>{
+    document.getElementById('pv-generate-btn').disabled=true;
+    parsedPositions=null; parsedFornCount=null;
     try{
       const wb=XLSX.read(e.target.result,{type:'array'});
-      const { positions, fornCount }=parseExcelWorkbook(wb);
+      const { positions, fornCount, failed }=await parseExcelWorkbookHybrid(wb, (done,total,query)=>{
+        setUploadStatus(`Elaborazione ${done}/${total}…`+(query?` geolocalizzo "${query}"`:''),'');
+      });
       parsedPositions=positions; parsedFornCount=fornCount;
-      setUploadStatus(`✓ ${positions.length} posizionamenti caricati correttamente.`,'ok');
+      let msg=`✓ ${positions.length} posizionamenti pronti.`;
+      if(failed && failed.length) msg+=` ⚠ ${failed.length} indirizzi non trovati (ignorati).`;
+      setUploadStatus(msg, (failed&&failed.length)?'err':'ok');
       document.getElementById('pv-generate-btn').disabled=false;
     }catch(err){
       parsedPositions=null; parsedFornCount=null;
@@ -1678,9 +1726,9 @@ pvDrop.addEventListener('drop',(e)=>{
 document.getElementById('pv-download-template').onclick=()=>{
   if(typeof XLSX==='undefined'){ setUploadStatus('⚠ Modulo Excel non disponibile: verifica la connessione a internet.','err'); return; }
   const data=[
-    ['Circuito','Tipo','Formato','Superficie','Schermi','Latitudine','Longitudine','Fornitore'],
-    ['Milano Centrale - Atrio','Digital','75 pollici','','1',45.4859,9.2044,'Fornitore Esempio SRL'],
-    ['Torino Porta Susa','Statico','6x3 m','18',' ',45.0708,7.6600,'Altro Fornitore SpA']
+    ['Circuito','Tipo','Città','Indirizzo','Formato','Superficie','Schermi','Latitudine','Longitudine','Fornitore'],
+    ['Milano Centrale - Atrio','Digital','Milano','','75 pollici','','1',45.4859,9.2044,'Fornitore Esempio SRL'],
+    ['Torino Porta Susa','Statico','Torino','Corso Bolzano 20','6x3 m','18','',null,null,'Altro Fornitore SpA']
   ];
   const ws=XLSX.utils.aoa_to_sheet(data);
   const wbOut=XLSX.utils.book_new();
@@ -1859,14 +1907,8 @@ let markersAll=[], cluster, map, geoMarker=null;
 document.getElementById('go-map').onclick=()=>{
   document.getElementById('landing').style.display='none';
   document.getElementById('app').classList.add('show');
-  if(!window.__mapInit){
-    window.__mapInit=true;
-    // Il container deve avere dimensioni reali (non display:none) prima che Leaflet calcoli la mappa:
-    // un piccolo ritardo lascia al browser il tempo di applicare il layout dopo il classList.add('show').
-    setTimeout(initMap,60);
-  } else {
-    setTimeout(()=>{ if(map) map.invalidateSize(); },60);
-  }
+  if(!window.__mapInit){ window.__mapInit=true; initMap(); }
+  else if(map){ map.invalidateSize(); }
 };
 document.getElementById('back-btn').onclick=()=>{
   document.getElementById('app').classList.remove('show');
@@ -1898,10 +1940,8 @@ function applyFilter(){
 
 function initMap(){
   map=L.map('map',{preferCanvas:true}).setView([42.5,12.5],6);
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
-    {attribution:'&copy; Esri, HERE, Garmin, &copy; OpenStreetMap contributors',maxZoom:19,maxNativeZoom:16}).addTo(map);
-  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}',
-    {maxZoom:19,maxNativeZoom:16,pane:'overlayPane'}).addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {attribution:'&copy; OpenStreetMap contributors',subdomains:'abc',maxZoom:19}).addTo(map);
   cluster=L.markerClusterGroup({maxClusterRadius:50});
   map.addLayer(cluster);
   const bounds=[];
@@ -1916,7 +1956,22 @@ function initMap(){
   });
   map.invalidateSize();
   applyFilter();
-  if(bounds.length){ try{ map.fitBounds(bounds,{padding:[40,40],maxZoom:14}); }catch(e){} }
+
+  // Il contenitore #map parte da display:none: le sue dimensioni reali sono note al browser solo
+  // dopo il layout. Invece di indovinare un tempo di attesa, osserviamo il contenitore e ricalcoliamo
+  // dimensioni + inquadratura ogni volta che la sua dimensione cambia davvero (robusto su ogni dispositivo/browser).
+  function settle(){
+    map.invalidateSize();
+    if(bounds.length){ try{ map.fitBounds(bounds,{padding:[40,40],maxZoom:14}); }catch(e){} }
+  }
+  settle();
+  if(window.ResizeObserver){
+    const ro=new ResizeObserver(()=>settle());
+    ro.observe(document.getElementById('map'));
+  } else {
+    setTimeout(settle,150);
+    setTimeout(settle,500);
+  }
 
   document.querySelectorAll('#kindSeg button').forEach(b=>b.onclick=()=>{
     document.querySelectorAll('#kindSeg button').forEach(x=>x.classList.remove('on'));
