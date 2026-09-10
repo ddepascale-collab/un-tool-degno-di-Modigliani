@@ -1861,22 +1861,26 @@ body{font-family:'Archivo',sans-serif;background:var(--da-light);color:var(--da-
 #landing .lp-bg{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
 #landing .lp-bg::before{content:'';position:absolute;top:-310px;left:-260px;width:430px;height:430px;border-radius:50%;background:#2b3a8f}
 #landing .lp-bg::after{content:'';position:absolute;top:-82px;right:-70px;width:330px;height:160px;background:#AF92FF;transform:rotate(37deg);border-radius:24px}
-.lp-inner{position:relative;z-index:2;width:100%;max-width:1180px;padding:74px 48px 54px;display:flex;flex-direction:column;align-items:center;text-align:center;min-height:100%}
+.lp-footer-green{position:absolute;left:0;right:0;bottom:0;height:24vh;min-height:150px;z-index:1;pointer-events:none;overflow:hidden}
+.lp-footer-green::before{content:'';position:absolute;left:-7%;bottom:-55%;width:76%;height:145%;background:#02614c;border-radius:50% 50% 0 0 / 72% 72% 0 0;transform:rotate(4deg)}
+.lp-footer-green::after{content:'';position:absolute;right:-8%;bottom:-44%;width:31%;height:120%;background:#02614c;border-radius:38% 38% 0 0 / 60% 60% 0 0;transform:rotate(-14deg)}
+.lp-footer-logo{position:absolute;left:5.5%;bottom:3.3%;z-index:3;width:190px;height:95px;background:#fff;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:left center;mask-position:left center;-webkit-mask-size:contain;mask-size:contain;pointer-events:none}
+.lp-inner{position:relative;z-index:2;width:100%;max-width:1180px;padding:72px 48px 210px;display:flex;flex-direction:column;align-items:center;text-align:center;min-height:100%}
 .lp-logo{display:none}
 .lp-client-brand{font-family:'Be Vietnam Pro',sans-serif;font-size:clamp(30px,3.2vw,54px);line-height:1;font-weight:800;color:#2b3a8f;margin:0 0 22px}
 .lp-client-name{font-family:'Be Vietnam Pro',sans-serif;font-size:clamp(58px,7.6vw,112px);line-height:.98;font-weight:700;color:#02614c;letter-spacing:-3px;margin:0 0 18px}
 .lp-client-subtitle{font-family:'Be Vietnam Pro',sans-serif;font-size:clamp(28px,4.3vw,58px);font-weight:400;line-height:1.08;color:#031C15;margin:0 0 8px;letter-spacing:-1.4px}
-.lp-client-date{font-family:'Be Vietnam Pro',sans-serif;font-size:clamp(23px,2.6vw,40px);font-weight:400;color:#031C15;line-height:1.1;margin-bottom:40px}
+.lp-client-date{font-family:'Be Vietnam Pro',sans-serif;font-size:clamp(23px,2.6vw,40px);font-weight:400;color:#031C15;line-height:1.1;margin-bottom:36px}
 .lp-eyebrow{font-family:'Space Mono';font-size:11px;letter-spacing:2px;color:var(--da-green);text-transform:uppercase;margin-bottom:18px}
 .lp-title{display:none}
 .lp-title .hl{color:var(--da-violet)}
 .lp-date{display:none}
 .lp-stats{display:none}
-.lp-card{border:1px solid var(--line);border-radius:20px;padding:34px 34px;background:#fff;box-shadow:0 8px 28px rgba(10,45,45,.08);cursor:pointer;width:min(520px,88vw);transition:.15s;text-align:left;margin-top:0}
+.lp-card{border:1px solid var(--line);border-radius:20px;padding:27px 32px;background:#fff;box-shadow:0 8px 28px rgba(10,45,45,.08);cursor:pointer;width:min(420px,84vw);transition:.15s;text-align:center;margin-top:0}
 .lp-card:hover{border-color:var(--da-green);transform:translateY(-2px)}
-.lp-card .ic{font-size:27px;margin-bottom:15px}
-.lp-card h3{font-family:'Be Vietnam Pro',sans-serif;font-size:22px;font-weight:700;color:#02614c;margin-bottom:9px}
-.lp-card p{font-family:'Be Vietnam Pro',sans-serif;font-size:15px;color:#607873;line-height:1.55}
+.lp-card .ic{display:none}
+.lp-card h3{font-family:'Be Vietnam Pro',sans-serif;font-size:20px;font-weight:700;color:#02614c;margin-bottom:8px;text-align:center}
+.lp-card p{font-family:'Be Vietnam Pro',sans-serif;font-size:14px;color:#607873;line-height:1.5;text-align:center;margin:0 auto;max-width:330px}
 #app{position:fixed;inset:0;display:none;flex-direction:column;z-index:5}
 #app.show{display:flex}
 header{height:58px;flex:0 0 auto;display:flex;align-items:center;gap:14px;padding:0 20px;border-bottom:1px solid var(--line);background:#fff}
@@ -1916,19 +1920,22 @@ main{flex:1;position:relative;min-width:0}
 .legend{position:absolute;left:14px;bottom:20px;z-index:500;background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:10px;padding:10px 13px;font-size:12px;box-shadow:var(--shadow)}
 .legend .li{display:flex;align-items:center;gap:8px;margin:4px 0}
 .legend .r{width:11px;height:11px;border-radius:50%}
-.map-client-logo{position:absolute;left:18px;bottom:88px;z-index:520;width:120px;height:60px;background:#2b3a8f;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:left center;mask-position:left center;-webkit-mask-size:contain;mask-size:contain;pointer-events:none}
+.aside-client-logo-wrap{margin-top:auto;padding:20px 18px 24px;border-top:1px solid var(--line);background:#fff;flex:0 0 auto}
+.aside-client-logo{width:132px;height:66px;background:#2b3a8f;-webkit-mask-repeat:no-repeat;mask-repeat:no-repeat;-webkit-mask-position:left center;mask-position:left center;-webkit-mask-size:contain;mask-size:contain;pointer-events:none}
 .leaflet-popup-content-wrapper{border-radius:10px}
 .leaflet-popup-content{font-family:'Archivo',sans-serif;min-width:210px}
 .pp-type{display:inline-block;font-family:'Space Mono';font-size:10px;letter-spacing:.5px;text-transform:uppercase;padding:3px 8px;border-radius:5px;margin-bottom:8px;font-weight:700}
 .pp-grid{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:12.5px;margin:8px 0}
 .pp-grid .k{color:rgba(10,45,45,.5)}
 .pp-btn{display:none}
-@media(max-width:700px){.lp-inner{padding:58px 22px 36px}.lp-client-name{letter-spacing:-1.5px}.lp-card{padding:26px 24px}.map-client-logo{width:92px;height:46px;bottom:84px;left:14px}header .ttl{font-size:12.5px}}
+@media(max-width:700px){.lp-inner{padding:58px 22px 180px}.lp-client-name{letter-spacing:-1.5px}.lp-card{padding:24px 22px;width:min(390px,88vw)}.lp-footer-green{height:21vh;min-height:135px}.lp-footer-logo{width:145px;height:72px;left:5%;bottom:2.5%}.aside-client-logo{width:105px;height:52px}header .ttl{font-size:12.5px}}
 </style>
 </head>
 <body>
 <div id="landing">
   <div class="lp-bg"></div>
+  <div class="lp-footer-green"></div>
+  <div class="lp-footer-logo" style="-webkit-mask-image:url('${DA_LOGO_URI}');mask-image:url('${DA_LOGO_URI}')" aria-label="DAs media"></div>
   <div class="lp-inner">
     <div class="lp-logo"><img src="${DA_LOGO_URI}" alt="DAs media"></div>
     <div class="lp-client-brand">DAs Media</div>
@@ -1937,7 +1944,6 @@ main{flex:1;position:relative;min-width:0}
     <div class="lp-client-date">${escP(o.dateFmt)}</div>
     <div class="lp-stats">${o.totalPos.toLocaleString('it-IT')} posizionamenti${o.totalForn!=null?' · '+o.totalForn.toLocaleString('it-IT')+' fornitori proposti':''}</div>
     <div class="lp-card" id="go-map">
-      <div class="ic">🗺️</div>
       <h3>Esplora la mappa</h3>
       <p>Esplora la mappa dei posizionamenti selezionati dal tuo media planner di fiducia.</p>
     </div>
@@ -1967,10 +1973,12 @@ main{flex:1;position:relative;min-width:0}
         <div class="sec-title">Posizionamenti visibili</div>
         <div class="pv-count" id="pv-count">0</div>
       </div>
+      <div class="aside-client-logo-wrap">
+        <div class="aside-client-logo" style="-webkit-mask-image:url('${DA_LOGO_URI}');mask-image:url('${DA_LOGO_URI}')" aria-label="DAs media"></div>
+      </div>
     </aside>
     <main>
       <div id="map"></div>
-      <div class="map-client-logo" style="-webkit-mask-image:url('${DA_LOGO_URI}');mask-image:url('${DA_LOGO_URI}')" aria-label="DAs media"></div>
       <div class="legend"><div class="li"><span class="r" style="background:var(--digital)"></span>Digital</div><div class="li"><span class="r" style="background:var(--static)"></span>Statico</div></div>
     </main>
   </div>
